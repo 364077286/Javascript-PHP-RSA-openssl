@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width"/>
+    <title>js php RSA交互加密解密 </title>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <meta content="always" name="referrer">
+        <style>.box {width: 500px;word-wrap: break-word}</style>
+    </head>
+<body>
+<div>
+    加密参数：<input type="text" class="text1" value=""/>
+    <input type="button" id="enbtn" value="点我加密"/>
+    <div class="box box1"></div>
+    <br/>
+    解密参数<textarea class="textarea2" rows="8" cols="25" ></textarea>
+    <input type="button" id="debtn" value="点我JS解密"/>
+    <div class="box box2"></div>
+</div>
+</body>
+<script src="jquery-1.9.1.min.js"></script>
+<script src="jsencrypt.js"></script>
+<script type="text/javascript">
+    //秘钥对 可用工具，在线生成 ;例： http://web.chacuo.net/netrsakeypair （生成密钥位数：1024bit  密钥格式：PKCS#8  证书密码: 证书密码不用填写）
+    //当然了，一般场景js不进行解密 几乎没有人把私钥写在前端的 哈哈哈哈
+
+    //公钥
+    var PUBLIC_KEY = '-----BEGIN PUBLIC KEY-----\n' +
+        'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDTRQRwiJhMCSbXPQp4rWceN7OX\n' +
+        'Px499YmBIqv0jKzWi1GH7TAcqVhPgno4AqQEPl8p+tcZgncq8XJOj7MUeU8O3ZWq\n' +
+        '4BzzS3xA4SlQdlX20hFvgaZjIfoqKzqQ0knoAUpohA/gPAWGov62lHuUqidS/H5m\n' +
+        'NE0YBo6OsO1CgK5lNwIDAQAB\n' +
+        '-----END PUBLIC KEY-----\n';
+    //私钥
+    var PRIVATE_KEY = '-----BEGIN PRIVATE KEY-----\n' +
+        'MIICeAIBADANBgkqhkiG9w0BAQEFAASCAmIwggJeAgEAAoGBANNFBHCImEwJJtc9\n' +
+        'CnitZx43s5c/Hj31iYEiq/SMrNaLUYftMBypWE+CejgCpAQ+Xyn61xmCdyrxck6P\n' +
+        'sxR5Tw7dlargHPNLfEDhKVB2VfbSEW+BpmMh+iorOpDSSegBSmiED+A8BYai/raU\n' +
+        'e5SqJ1L8fmY0TRgGjo6w7UKArmU3AgMBAAECgYEAjjSpnVnEMYIDe+OhdcM6YrOZ\n' +
+        'ldetcoUgjiSZXB2IhUz3jyfPN6uhPruTqrnUTurwwWAPgyM3NVeZ2lmNb92LoTtx\n' +
+        'od3U2r17B3W6XJW/ASh5Dg5+kbvmK+OX1ZbSbmeIzVuUqKOb4/3n47+5cJUT9TmX\n' +
+        'j60OKfofCBnWm6EiqZECQQD1CDH9b7JCCFo+Ap30Qtr2YM3R4BRzDZhritNmQIZE\n' +
+        '0ehQf4pMP97VC8dFWP1ad3WqwxEasrGEUt4dgGjaNjL5AkEA3Lnw4IxwYkjsFQqh\n' +
+        'fgVBx6HyO6FH91gANy12CbMyLDklo5iTN7lO9R2whpQbcW+KC3qAoHdoDnmh9UsZ\n' +
+        '9rQ1rwJBAOiMTJVQiocs0iiD51DImnK10OBcoEvJHV0DNjqXBlcOOEMdqC1ReLQN\n' +
+        'J6PjHx/avCvCUdtauCrzUqYBFoHyalECQGrODqCZVEg6wQHtgvdX09yloHD6ObiV\n' +
+        '/IS2msdWzpBXlr7ytUnhgTNainCUejMJpeKoBFWhcdiPQq9PB+E4kkECQQDj6wkt\n' +
+        '3zYKwyE2acRdFvt00BZ1y6kkaBch0YZew01dHefAwQzNE15pvOqgCtTOGK6jeF+I\n' +
+        '0DQhYMqXgoJFwvwk\n' +
+        '-----END PRIVATE KEY-----\n';
+
+    //加密处理
+    $("#enbtn").click(function () {
+        var getparam = $('.text1').val();
+        if(!getparam) { alert('填上要加密参数');return;}
+        var encrypt = new JSEncrypt();
+        encrypt.setPublicKey(PUBLIC_KEY);
+        encrypted = encrypt.encrypt(getparam);
+        url_encrypted = encodeURI(encrypted).replace(/\+/g, '%2B'); //+号的处理：因为数据在网络上传输时，非字母数字字符都将被替换成百分号（%）后跟两位十六进制数，而base64编码在传输到后端的时候，+会变成空格，因此先替换掉。后端再替换回来
+        $('.box1').html('');
+        $('.box1').append('js加密结果：'+encrypted);
+        $('.textarea2').val(encrypted);
+        $.ajax({
+            url: '/openssl/process.php',
+            data: "password=" + url_encrypted,
+            type: 'post',
+            success: function (msg) {
+                $('.box1').append('<hr/><br/>php解密结果：'+msg);
+            }
+        });
+    });
+
+    //解密处理
+    $("#debtn").click(function () {
+        var decrypt = new JSEncrypt();
+        decrypt.setPrivateKey(PRIVATE_KEY);
+        var text2 = $('.textarea2').val();
+        var uncrypted = decrypt.decrypt(text2);
+        $('.box2').html('js解密结果:'+uncrypted);
+    });
+</script>
+</html>
